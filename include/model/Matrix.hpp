@@ -17,21 +17,18 @@
 /*  MA 02110-1301, USA.                                                */
 /***********************************************************************/
 
-#include "Random.hpp"
+#ifndef TOPS_MODEL_MATRIX_
+#define TOPS_MODEL_MATRIX_
 
-#include <chrono>
-#include <random>
+// Standard headers
+#include <vector>
 
 namespace tops {
 namespace model {
 
-std::default_random_engine generator(
-  std::chrono::system_clock::now().time_since_epoch().count());
-
-int generateRandomDouble() {
-  std::uniform_real_distribution<double> distribution(0.0, 1.0);
-  return distribution(generator);
-}
+using Matrix = std::vector<std::vector<double>>;
 
 }  // namespace model
 }  // namespace tops
+
+#endif  // TOPS_MODEL_MATRIX_

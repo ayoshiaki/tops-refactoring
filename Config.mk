@@ -6,7 +6,7 @@
 # Project settings
 # ==================
 PROJECT         := ToPS
-VERSION         := 2.0.0
+VERSION         := 1.0.0
 GIT_REMOTE_PATH := git@bitbucket.org:igorbonadio/topspp.git
 
 # Project info
@@ -30,25 +30,24 @@ BENCHBIN        := bench
 
 # Dependencies
 # ==============
-GIT_DEPENDENCY  :=
-WEB_DEPENDENCY  := # Same as above, but for URL downloads
+GIT_DEPENDENCY  +=
+WEB_DEPENDENCY  += # Same as above, but for URL downloads
                    # with 'curl -o' (default) or 'wget -O'
 
 # Paths
 # =======
-ASLIBS          := # Assembly paths
-CLIBS           := # C paths
-CXXLIBS         :=
-LDLIBS          :=
+ASLIBS          += # Assembly paths
+CLIBS           += # C paths
+CXXLIBS         +=
+LDLIBS          +=
 
 # Flags
 # =======
-CPPFLAGS        := # Precompiler Flags
-ASFLAGS         := # Assembly Flags
-CFLAGS          := # C Flags
-CXXFLAGS        := -ansi -Wall -O2 -std=c++11 \
-                   # -pedantic
-LDFLAGS         :=
+CPPFLAGS        += # Precompiler Flags
+ASFLAGS         += # Assembly Flags
+CFLAGS          += # C Flags
+CXXFLAGS        += -ansi -Wall -Wextra -Werror -pedantic -O2 -std=c++14
+LDFLAGS         +=
 
 # Makeball list
 # ===============

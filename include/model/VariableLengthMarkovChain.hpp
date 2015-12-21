@@ -22,10 +22,11 @@
 
 // Standard headers
 #include <memory>
+#include <vector>
 
 // ToPS headers
-#include "model/FactorableModel.hpp"
 #include "model/ContextTree.hpp"
+#include "model/ProbabilisticModel.hpp"
 
 namespace tops {
 namespace model {
@@ -46,22 +47,60 @@ using VariableLengthMarkovChainPtr
  * An variable length Markov chain is a Markov chain that can have different
  * size contexts.
  */
-class VariableLengthMarkovChain : public FactorableModel {
+class VariableLengthMarkovChain
+    : public ProbabilisticModelCrtp<VariableLengthMarkovChain> {
  public:
+  // Tags
+  class context_algorithm {};
+  class fixed_length_algorithm {};
+  class interpolation_algorithm {};
+
+  // Alias
+  using Base = ProbabilisticModelCrtp<VariableLengthMarkovChain>;
+
+  using Self = VariableLengthMarkovChain;
+  using SelfPtr = VariableLengthMarkovChainPtr;
+
+  // Constructors
+  explicit VariableLengthMarkovChain(ContextTreePtr context_tree);
+
   // Static methods
   static VariableLengthMarkovChainPtr make(ContextTreePtr context_tree);
 
-  // Virtual methods
-  virtual int alphabetSize() const;
-  virtual double evaluatePosition(const Sequence &s, unsigned int i) const;
-  virtual Symbol choosePosition(const Sequence &s, unsigned int i) const;
+  static SelfPtr train(TrainerPtr<Standard, Self> trainer,
+                       context_algorithm,
+                       unsigned int alphabet_size,
+                       double delta);
+
+  static SelfPtr train(TrainerPtr<Standard, Self> trainer,
+                       fixed_length_algorithm,
+                       unsigned int order,
+                       unsigned int alphabet_size,
+                       double pseudo_counts,
+                       std::vector<double> weights,
+                       ProbabilisticModelPtr apriori);
+
+  static SelfPtr train(TrainerPtr<Standard, Self> trainer,
+                       interpolation_algorithm,
+                       std::vector<double> weights,
+                       unsigned int alphabet_size,
+                       unsigned int order,
+                       double pseudo_counts,
+                       ProbabilisticModelPtr apriori);
+
+  // Overriden methods
+  Probability evaluateSymbol(SEPtr<Standard> evaluator,
+                             unsigned int pos,
+                             unsigned int phase) const override;
+
+  Standard<Symbol> drawSymbol(SGPtr<Standard> generator,
+                              unsigned int pos,
+                              unsigned int phase,
+                              const Sequence &context) const override;
 
  private:
   // Instance variables
   ContextTreePtr _context_tree;
-
-  // Constructors
-  explicit VariableLengthMarkovChain(ContextTreePtr context_tree);
 };
 
 }  // namespace model

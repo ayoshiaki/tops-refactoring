@@ -25,7 +25,7 @@
 #include <vector>
 
 // ToPS headers
-#include "model/FactorableModel.hpp"
+#include "model/ProbabilisticModel.hpp"
 #include "model/VariableLengthMarkovChain.hpp"
 
 namespace tops {
@@ -46,24 +46,31 @@ using InhomogeneousMarkovChainPtr = std::shared_ptr<InhomogeneousMarkovChain>;
  * An inhomogeneous Markov chain is a model which suports different Markov
  * chains per position.
  */
-class InhomogeneousMarkovChain : public FactorableModel {
+class InhomogeneousMarkovChain
+    : public ProbabilisticModelCrtp<InhomogeneousMarkovChain> {
  public:
-  // Static methods
-  static InhomogeneousMarkovChainPtr make(
-      std::vector<VariableLengthMarkovChainPtr> vlmcs);
+  // Alias
+  using Base = ProbabilisticModelCrtp<InhomogeneousMarkovChain>;
+
+  // Constructors
+  InhomogeneousMarkovChain(std::vector<VariableLengthMarkovChainPtr> vlmcs);
+
+  // Overriden methods
+  Probability evaluateSymbol(SEPtr<Standard> evaluator,
+                             unsigned int pos,
+                             unsigned int phase) const override;
+
+  Standard<Symbol> drawSymbol(SGPtr<Standard> generator,
+                              unsigned int pos,
+                              unsigned int phase,
+                              const Sequence &context) const override;
 
   // Virtual methods
-  virtual int alphabetSize() const;
-  virtual double evaluatePosition(const Sequence &s, unsigned int i) const;
-  virtual Symbol choosePosition(const Sequence &s, unsigned int i) const;
+  virtual unsigned int maximumTimeValue();
 
  protected:
   // Instance variables
   std::vector<VariableLengthMarkovChainPtr> _vlmcs;
-
-  // Constructors
-  InhomogeneousMarkovChain(
-      std::vector<VariableLengthMarkovChainPtr> vlmcs);
 };
 
 }  // namespace model

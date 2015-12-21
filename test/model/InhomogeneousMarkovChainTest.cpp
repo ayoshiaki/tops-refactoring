@@ -32,14 +32,21 @@
 #include "helper/VariableLengthMarkovChain.hpp"
 #include "helper/Sequence.hpp"
 
+// ToPS templates
+#include "model/ProbabilisticModelDecorator.tcc"
+
 using ::testing::Eq;
 using ::testing::DoubleEq;
+using ::testing::ContainerEq;
 
 using tops::model::Sequence;
+using tops::model::INVALID_SYMBOL;
 using tops::model::VariableLengthMarkovChain;
 using tops::model::VariableLengthMarkovChainPtr;
 using tops::model::InhomogeneousMarkovChain;
 using tops::model::InhomogeneousMarkovChainPtr;
+using tops::model::ProbabilisticModelDecorator;
+using tops::model::ProbabilisticModelDecoratorPtr;
 
 using tops::helper::createMachlerVLMC;
 using tops::helper::createVLMCMC;
@@ -50,28 +57,59 @@ class AnInhomogeneousMarkovChain : public testing::Test {
   InhomogeneousMarkovChainPtr imc;
 
   virtual void SetUp() {
-    imc = InhomogeneousMarkovChain::make({createMachlerVLMC(), createVLMCMC()});
+    imc = InhomogeneousMarkovChain::make(
+      std::vector<VariableLengthMarkovChainPtr>{
+        createMachlerVLMC(), createVLMCMC()
+      }
+    );
   }
 };
 
-TEST_F(AnInhomogeneousMarkovChain, ShouldHaveAnAlphabetSize) {
-  ASSERT_THAT(imc->alphabetSize(), Eq(2));
-}
-
 TEST_F(AnInhomogeneousMarkovChain, ShouldEvaluateASequence) {
-  ASSERT_THAT(imc->evaluateSequence({0}, 0, 1), DoubleEq(log(0.50)));
-  ASSERT_THAT(imc->evaluateSequence({1}, 0, 1), DoubleEq(log(0.50)));
-  ASSERT_THAT(imc->evaluateSequence({0, 1}, 0, 2), DoubleEq(log(0.50) + log(0.90)));
-  ASSERT_THAT(imc->evaluateSequence({0, 0}, 0, 2), DoubleEq(log(0.50) + log(0.10)));
-  ASSERT_THAT(imc->evaluateSequence({1, 0}, 0, 2), DoubleEq(log(0.50) + log(0.50)));
-  ASSERT_THAT(imc->evaluateSequence({1, 1}, 0, 2), DoubleEq(log(0.50) + log(0.50)));
-  ASSERT_THAT(imc->evaluateSequence({1, 0, 1}, 0, 3), DoubleEq(-HUGE));
+  ASSERT_THAT(imc->standardEvaluator({0})->evaluateSequence(0, 1),
+              DoubleEq(log(0.50)));
+  ASSERT_THAT(imc->standardEvaluator({1})->evaluateSequence(0, 1),
+              DoubleEq(log(0.50)));
+  ASSERT_THAT(imc->standardEvaluator({0, 1})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.90)));
+  ASSERT_THAT(imc->standardEvaluator({0, 0})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.10)));
+  ASSERT_THAT(imc->standardEvaluator({1, 0})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.50)));
+  ASSERT_THAT(imc->standardEvaluator({1, 1})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.50)));
+  ASSERT_THAT(imc->standardEvaluator({1, 0, 1})->evaluateSequence(0, 3),
+              DoubleEq(-std::numeric_limits<double>::infinity()));
 }
 
 TEST_F(AnInhomogeneousMarkovChain, ShouldEvaluateASequenceWithPrefixSumArray) {
   for (int i = 1; i < 1000; i++) {
     auto data = generateRandomSequence(i, 2);
-    imc->initializePrefixSumArray(data);
-    ASSERT_THAT(imc->evaluateWithPrefixSumArray(0, data.size()), DoubleEq(imc->evaluateSequence(data, 0, data.size())));
+    ASSERT_THAT(
+        imc->standardEvaluator(data, true)->evaluateSequence(0, data.size()),
+        DoubleEq(imc->standardEvaluator(data)->evaluateSequence(0, data.size())));
   }
+}
+
+TEST_F(AnInhomogeneousMarkovChain, CanBeDecorated) {
+  auto decorated_imc
+    = std::make_shared<ProbabilisticModelDecorator<InhomogeneousMarkovChain>>(imc);
+  ASSERT_THAT(decorated_imc->standardEvaluator({0})->evaluateSequence(0, 1),
+              DoubleEq(log(0.50)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({1})->evaluateSequence(0, 1),
+              DoubleEq(log(0.50)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({0, 1})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.90)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({0, 0})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.10)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({1, 0})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.50)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({1, 1})->evaluateSequence(0, 2),
+              DoubleEq(log(0.50) + log(0.50)));
+  ASSERT_THAT(decorated_imc->standardEvaluator({1, 0, 1})->evaluateSequence(0, 3),
+              DoubleEq(-std::numeric_limits<double>::infinity()));
+}
+
+TEST_F(AnInhomogeneousMarkovChain, ShouldChooseSequenceWithSeed42) {
+  ASSERT_THAT(imc->standardGenerator()->drawSequence(5), ContainerEq(Sequence{0, 1, INVALID_SYMBOL, INVALID_SYMBOL, INVALID_SYMBOL}));
 }

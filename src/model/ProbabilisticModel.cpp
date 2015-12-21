@@ -17,7 +17,8 @@
 /*  MA 02110-1301, USA.                                                */
 /***********************************************************************/
 
-#include "ProbabilisticModel.hpp"
+// ToPS headers
+#include "model/ProbabilisticModel.hpp"
 
 namespace tops {
 namespace model {

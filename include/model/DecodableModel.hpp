@@ -20,15 +20,45 @@
 #ifndef TOPS_MODEL_DECODABLE_MODEL_
 #define TOPS_MODEL_DECODABLE_MODEL_
 
+// Standard headers
 #include <memory>
+#include <vector>
+
+// ToPS templates
+#include "model/Labeler.tcc"
+#include "model/Labeling.tcc"
+
+// ToPS headers
+#include "model/ProbabilisticModel.hpp"
 
 namespace tops {
 namespace model {
 
-class DecodableModel {
-};
+// Forward declaration
+class DecodableModel;
 
-typedef std::shared_ptr<DecodableModel> DecodableModelPtr;
+/**
+ * @typedef DecodableModelPtr
+ * @brief Alias of pointer to DecodableModel.
+ */
+using DecodableModelPtr = std::shared_ptr<DecodableModel>;
+
+/**
+ * @class DecodableModel
+ * @brief TODO
+ */
+class DecodableModel : public virtual ProbabilisticModel {
+ public:
+  // Purely virtual methods
+  virtual EvaluatorPtr<Labeling> labelingEvaluator(
+      const Labeling<Sequence> &sequence, bool cached = false) = 0;
+
+  virtual GeneratorPtr<Labeling> labelingGenerator(
+      RandomNumberGeneratorPtr rng = RNGAdapter<std::mt19937>::make()) = 0;
+
+  virtual LabelerPtr labeler(
+      const Sequence &sequence, bool cached = false) = 0;
+};
 
 }  // namespace model
 }  // namespace tops

@@ -25,6 +25,7 @@
 #include <vector>
 
 // ToPS headers
+#include "model/Matrix.hpp"
 #include "model/InhomogeneousMarkovChain.hpp"
 #include "model/VariableLengthMarkovChain.hpp"
 
@@ -48,20 +49,65 @@ using PhasedInhomogeneousMarkovChainPtr
  * Markov chains per position. Each Markov chain repeats itsealf per
  * phase.
  */
-class PhasedInhomogeneousMarkovChain : public InhomogeneousMarkovChain {
+class PhasedInhomogeneousMarkovChain
+    : public ProbabilisticModelCrtp<PhasedInhomogeneousMarkovChain> {
  public:
+  // Inner classes
+  struct Cache : ProbabilisticModelCrtp<PhasedInhomogeneousMarkovChain>::Cache {
+    Matrix prefix_sum_matrix;
+  };
+
+  // Tags
+  class interpolation_algorithm {};
+
+  // Alias
+  using Base = ProbabilisticModelCrtp<PhasedInhomogeneousMarkovChain>;
+
+  using Self = PhasedInhomogeneousMarkovChain;
+  using SelfPtr = PhasedInhomogeneousMarkovChainPtr;
+
+  // Constructors
+  PhasedInhomogeneousMarkovChain(
+      std::vector<VariableLengthMarkovChainPtr> vlmcs);
+
   // Static methods
   static PhasedInhomogeneousMarkovChainPtr make(
       std::vector<VariableLengthMarkovChainPtr> vlmcs);
 
+  static SelfPtr train(TrainerPtr<Standard, Self> trainer,
+                       interpolation_algorithm,
+                       unsigned int alphabet_size,
+                       unsigned int order,
+                       unsigned int nphases,
+                       double pseudo_counts,
+                       std::vector<double> weights,
+                       ProbabilisticModelPtr apriori);
+
   // Virtual methods
-  virtual double evaluatePosition(const Sequence &s, unsigned int i) const;
-  virtual Symbol choosePosition(const Sequence &s, unsigned int i) const;
+  void initializeCache(CEPtr<Standard> evaluator,
+                       unsigned int phase) override;
+
+  Probability evaluateSymbol(SEPtr<Standard> evaluator,
+                             unsigned int pos,
+                             unsigned int phase) const override;
+  Probability evaluateSequence(SEPtr<Standard> evaluator,
+                               unsigned int begin,
+                               unsigned int end,
+                               unsigned int phase) const override;
+
+  Probability evaluateSequence(CEPtr<Standard> evaluator,
+                               unsigned int begin,
+                               unsigned int end,
+                               unsigned int phase) const override;
+
+  Standard<Symbol> drawSymbol(SGPtr<Standard> generator,
+                              unsigned int pos,
+                              unsigned int phase,
+                              const Sequence &context) const override;
 
  private:
-  // Constructors
-  PhasedInhomogeneousMarkovChain(
-      std::vector<VariableLengthMarkovChainPtr> vlmcs);
+  // Instance variables
+  std::vector<VariableLengthMarkovChainPtr> _vlmcs;
 };
 
 }  // namespace model

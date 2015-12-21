@@ -22,25 +22,46 @@
 
 // Standard headers
 #include <memory>
+#include <random>
 
 // ToPS headers
 #include "model/Sequence.hpp"
+#include "model/RandomNumberGenerator.hpp"
+
+// ToPS templates
+#include "model/Standard.tcc"
+#include "model/Evaluator.tcc"
+#include "model/Generator.tcc"
+#include "model/Serializer.tcc"
+#include "model/RandomNumberGeneratorAdapter.tcc"
 
 namespace tops {
 namespace model {
 
-class ProbabilisticModel {
-public:
-  // Purely virtual methods
-  virtual double evaluateSequence(const Sequence &s,
-                                  unsigned int begin,
-                                  unsigned int end) const = 0;
-  virtual double evaluatePosition(const Sequence &s, unsigned int i) const = 0;
-  virtual Symbol choosePosition(const Sequence &s, unsigned int i) const = 0;
-  virtual Sequence chooseSequence(Sequence &s, unsigned int size) const = 0;
-};
+// Forward declaration
+class ProbabilisticModel;
 
-typedef std::shared_ptr<ProbabilisticModel> ProbabilisticModelPtr;
+/**
+ * @typedef ProbabilisticModelPtr
+ * @brief Alias of pointer to ProbabilisticModel.
+ */
+using ProbabilisticModelPtr = std::shared_ptr<ProbabilisticModel>;
+
+/**
+ * @class ProbabilisticModel
+ * @brief Abstract class that represents all probabilistic models.
+ */
+class ProbabilisticModel {
+ public:
+  // Purely virtual methods
+  virtual EvaluatorPtr<Standard> standardEvaluator(
+      const Standard<Sequence> &sequence, bool cached = false) = 0;
+
+  virtual GeneratorPtr<Standard> standardGenerator(
+      RandomNumberGeneratorPtr rng = RNGAdapter<std::mt19937>::make()) = 0;
+
+  virtual SerializerPtr serializer(TranslatorPtr translator) = 0;
+};
 
 }  // namespace model
 }  // namespace tops

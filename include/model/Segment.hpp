@@ -17,55 +17,40 @@
 /*  MA 02110-1301, USA.                                                */
 /***********************************************************************/
 
-#ifndef TOPS_MODEL_FACTORABLE_MODEL_
-#define TOPS_MODEL_FACTORABLE_MODEL_
+#ifndef TOPS_MODEL_SEGMENT_
+#define TOPS_MODEL_SEGMENT_
 
 // Standard headers
-#include <memory>
+#include <vector>
 
 // ToPS headers
-#include "model/ProbabilisticModel.hpp"
+#include "Symbol.hpp"
+#include "Sequence.hpp"
 
 namespace tops {
 namespace model {
 
-class FactorableModel;
+class Segment {
+public:
+  // Constructors
+  Segment(Symbol symbol, int begin, int end);
 
-/**
- * @typedef FactorableModelPtr
- * @brief Alias of pointer to FactorableModel.
- */
-using FactorableModelPtr = std::shared_ptr<FactorableModel>;
+  // Static methods
+  static std::vector<Segment> readSequence(const Sequence &s);
 
-/**
- * @class FactorableModel
- * @brief Abstract class defining models in which the likelihood of
- *        the sequence is factorable.
- *
- * A factorable model can be expressed as a product of terms evaluated
- * at each position in a sequence.
- */
-class FactorableModel : public ProbabilisticModel {
- public:
-  // Purely virtual methods
-  virtual int alphabetSize() const = 0;
-  virtual double evaluatePosition(const Sequence &s, unsigned int i) const = 0;
-  virtual Symbol choosePosition(const Sequence &s, unsigned int i) const = 0;
+  // Concrete methods
+  Symbol symbol();
+  int begin();
+  int end();
 
-  // Virtual methods
-  virtual Sequence chooseSequence(Sequence &s, unsigned int size) const;
-  virtual double evaluateSequence(const Sequence &s,
-                                  unsigned int begin,
-                                  unsigned int end) const;
-  virtual double evaluateWithPrefixSumArray(int begin, int end);
-  virtual void initializePrefixSumArray(const Sequence &s);
-
- private:
+private:
   // Instance variables
-  std::vector<double> _prefix_sum_array;
+  Symbol _symbol;
+  int _begin;
+  int _end;
 };
 
 }  // namespace model
 }  // namespace tops
 
-#endif  // TOPS_MODEL_FACTORABLE_MODEL_
+#endif  // TOPS_MODEL_SEGMENT_

@@ -17,45 +17,52 @@
 /*  MA 02110-1301, USA.                                                */
 /***********************************************************************/
 
-// Standard headers
-#include <cmath>
+#ifndef TOPS_MODEL_SIGNAL_DURATION_
+#define TOPS_MODEL_SIGNAL_DURATION_
 
-// ToPS headers
-#include "FactorableModel.hpp"
+// Standard headers
+#include <memory>
+
+// ToPS templates
+#include "model/DurationCrtp.tcc"
 
 namespace tops {
 namespace model {
 
-Sequence FactorableModel::chooseSequence(Sequence &s, unsigned int size) const {
-  for (unsigned int k = 0; k < size; k++) {
-    if (k < s.size())
-      s[k] = choosePosition(s, k);
-    else
-      s.push_back(choosePosition(s, k));
-  }
-  return s;
-}
+// Forward declaration
+class SignalDuration;
 
-double FactorableModel::evaluateSequence(const Sequence &s,
-                                          unsigned int begin,
-                                          unsigned int end) const {
-  double prob = 0;
-  for (unsigned int i = begin; i < end; i++)
-    prob += evaluatePosition(s, i);
-  return prob;
-}
+/**
+ * @typedef SignalDurationPtr
+ * @brief Alias of pointer to SignalDuration.
+ */
+using SignalDurationPtr = std::shared_ptr<SignalDuration>;
 
-double FactorableModel::evaluateWithPrefixSumArray(int begin, int end) {
-  return _prefix_sum_array[end] - _prefix_sum_array[begin];
-}
+/**
+ * @class SignalDuration
+ * @brief TODO
+ */
+class SignalDuration : public DurationCrtp<SignalDuration> {
+ public:
+  // Alias
+  using Self = SignalDuration;
+  using SelfPtr = std::shared_ptr<Self>;
+  using Base = DurationCrtp<Self>;
 
-void FactorableModel::initializePrefixSumArray(const Sequence &s) {
-  _prefix_sum_array.resize(s.size() + 1);
-  _prefix_sum_array[0] = 0;
-  for (unsigned int i = 0; i < s.size() ; i++) {
-    _prefix_sum_array[i+1] = _prefix_sum_array[i] + evaluatePosition(s, i);
-  }
-}
+  // Constructors
+  SignalDuration(unsigned int duration_size);
+
+  // Overriden methods
+  RangePtr range() const override;
+  unsigned int maximumSize() const override;
+  Probability probabilityOfLenght(unsigned int length) const override;
+
+ private:
+  // Instance variables
+  unsigned int _duration_size;
+};
 
 }  // namespace model
 }  // namespace tops
+
+#endif  // TOPS_MODEL_SIGNAL_DURATION_

@@ -19,12 +19,94 @@
 
 // Standard headers
 #include <cmath>
+#include <vector>
 
 // ToPS headers
-#include "VariableLengthMarkovChain.hpp"
+#include "model/VariableLengthMarkovChain.hpp"
 
 namespace tops {
 namespace model {
+
+/*----------------------------------------------------------------------------*/
+/*                               CONSTRUCTORS                                 */
+/*----------------------------------------------------------------------------*/
+
+VariableLengthMarkovChain::VariableLengthMarkovChain(
+    ContextTreePtr context_tree) : _context_tree(context_tree) {
+}
+
+/*----------------------------------------------------------------------------*/
+/*                              STATIC METHODS                                */
+/*----------------------------------------------------------------------------*/
+
+/*================================  TRAINER  =================================*/
+
+VariableLengthMarkovChainPtr
+VariableLengthMarkovChain::train(TrainerPtr<Standard, Self> trainer,
+                                 context_algorithm,
+                                 unsigned int alphabet_size,
+                                 double delta) {
+  ContextTreePtr tree = ContextTree::make(alphabet_size);
+  tree->initializeContextTreeRissanen(trainer->training_set());
+  tree->pruneTree(delta);
+  tree->removeContextNotUsed();
+  tree->normalize();
+  return VariableLengthMarkovChain::make(tree);
+}
+
+/*----------------------------------------------------------------------------*/
+
+VariableLengthMarkovChainPtr
+VariableLengthMarkovChain::train(TrainerPtr<Standard, Self> trainer,
+                                 fixed_length_algorithm,
+                                 unsigned int order,
+                                 unsigned int alphabet_size,
+                                 double pseudo_counts,
+                                 std::vector<double> weights,
+                                 ProbabilisticModelPtr apriori) {
+  ContextTreePtr tree = ContextTree::make(alphabet_size);
+
+  if (apriori) {
+    tree->initializeCounter(trainer->training_set(),
+                            order, 0, weights);
+    tree->normalize(apriori, pseudo_counts);
+  } else {
+    tree->initializeCounter(trainer->training_set(),
+                            order, pseudo_counts, weights);
+    tree->normalize();
+  }
+
+  return VariableLengthMarkovChain::make(tree);
+}
+
+/*----------------------------------------------------------------------------*/
+
+VariableLengthMarkovChainPtr
+VariableLengthMarkovChain::train(TrainerPtr<Standard, Self> trainer,
+                                 interpolation_algorithm,
+                                 std::vector<double> weights,
+                                 unsigned int alphabet_size,
+                                 unsigned int order,
+                                 double pseudo_counts,
+                                 ProbabilisticModelPtr apriori) {
+  auto tree = ContextTree::make(alphabet_size);
+
+  if (apriori != NULL) {
+    tree->initializeCounter(trainer->training_set(),
+                            order, 0, weights);
+    tree->pruneTreeSmallSampleSize(400);
+    tree->normalize(apriori, pseudo_counts);
+  } else {
+    tree->initializeCounter(trainer->training_set(),
+                            order, pseudo_counts, weights);
+    tree->pruneTreeSmallSampleSize(400);
+    tree->normalize();
+  }
+
+  return VariableLengthMarkovChain::make(tree);
+}
+
+/*=================================  OTHERS  =================================*/
 
 VariableLengthMarkovChainPtr VariableLengthMarkovChain::make(
     ContextTreePtr context_tree) {
@@ -32,33 +114,40 @@ VariableLengthMarkovChainPtr VariableLengthMarkovChain::make(
     new VariableLengthMarkovChain(context_tree));
 }
 
-VariableLengthMarkovChain::VariableLengthMarkovChain(
-    ContextTreePtr context_tree) : _context_tree(context_tree) {
-}
+/*----------------------------------------------------------------------------*/
+/*                             OVERRIDEN METHODS                              */
+/*----------------------------------------------------------------------------*/
 
-int VariableLengthMarkovChain::alphabetSize() const {
-  return _context_tree->alphabetSize();
-}
-
-double VariableLengthMarkovChain::evaluatePosition(const Sequence &s,
-                                                   unsigned int i) const {
-  ContextTreeNodePtr c = _context_tree->getContext(s, i);
+Probability
+VariableLengthMarkovChain::evaluateSymbol(SEPtr<Standard> evaluator,
+                                          unsigned int pos,
+                                          unsigned int /* phase */) const {
+  ContextTreeNodePtr c = _context_tree->getContext(evaluator->sequence(), pos);
   if (c == NULL)
-    return -HUGE;
+    return -std::numeric_limits<double>::infinity();
   else
-    return c->getDistribution()->probabilityOf(s[i]);
+    return c->getDistribution()->standardEvaluator(
+             evaluator->sequence())->evaluateSymbol(pos);
 }
 
-Symbol VariableLengthMarkovChain::choosePosition(const Sequence &s,
-                                              unsigned int i) const {
-  ContextTreeNodePtr c = _context_tree->getContext(s, i);
-  if (c == NULL)
-    // TODO(igorbonadio): ERROR!
-    return 0;
-  else
-    return c->getDistribution()->evaluatePosition(s, i);
+/*----------------------------------------------------------------------------*/
+
+Standard<Symbol>
+VariableLengthMarkovChain::drawSymbol(SGPtr<Standard> generator,
+                                      unsigned int pos,
+                                      unsigned int phase,
+                                      const Sequence &context) const {
+  auto c = _context_tree->getContext(context, pos);
+
+  // TODO(igorbonadio): ERROR!
+  if (c == nullptr) return Standard<Symbol>(INVALID_SYMBOL);
+
+  return c->getDistribution()
+          ->standardGenerator(generator->randomNumberGenerator())
+          ->drawSymbol(pos, phase, context);
 }
 
+/*----------------------------------------------------------------------------*/
 
 }  // namespace model
 }  // namespace tops

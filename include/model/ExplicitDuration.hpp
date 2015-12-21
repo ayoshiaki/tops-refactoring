@@ -17,15 +17,57 @@
 /*  MA 02110-1301, USA.                                                */
 /***********************************************************************/
 
-#ifndef TOPS_MODEL_RANDOM_
-#define TOPS_MODEL_RANDOM_
+#ifndef TOPS_MODEL_EXPLICIT_DURATION_
+#define TOPS_MODEL_EXPLICIT_DURATION_
+
+// Standard headers
+#include <memory>
+
+// ToPS headers
+#include "model/ProbabilisticModel.hpp"
+
+// ToPS templates
+#include "model/DurationCrtp.tcc"
 
 namespace tops {
 namespace model {
 
-int generateRandomDouble();
+// Forward declaration
+class ExplicitDuration;
+
+/**
+ * @typedef ExplicitDurationPtr
+ * @brief Alias of pointer to ExplicitDuration.
+ */
+using ExplicitDurationPtr = std::shared_ptr<ExplicitDuration>;
+
+/**
+ * @class ExplicitDuration
+ * @brief TODO
+ */
+class ExplicitDuration : public DurationCrtp<ExplicitDuration> {
+ public:
+  // Alias
+  using Self = ExplicitDuration;
+  using SelfPtr = std::shared_ptr<Self>;
+  using Base = DurationCrtp<Self>;
+
+  // Constructors
+  ExplicitDuration(ProbabilisticModelPtr duration,
+                   unsigned int max_duration = 100);
+
+  // Overriden methods
+  RangePtr range() const override;
+  unsigned int maximumSize() const override;
+  Probability probabilityOfLenght(unsigned int length) const override;
+
+ private:
+  // Instance variables
+  ProbabilisticModelPtr _duration;
+  unsigned int _max_duration_size;
+};
 
 }  // namespace model
 }  // namespace tops
 
-#endif  // TOPS_MODEL_RANDOM_
+#endif  // TOPS_MODEL_EXPLICIT_DURATION_
